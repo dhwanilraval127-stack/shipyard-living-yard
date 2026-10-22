@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="theme-color" content="#10151c" />
+  <meta name="description" content="JERNVIK SHIPBUILDING & SALVAGE CO., est. 1913. A working shipyard you can walk through. Steel Remembered. Runs locally." />
+  <title>JERNVIK — Steel Remembered</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%2310151c'/%3E%3Cpath d='M4 20h24l-4 6H8z' fill='%23e8641b'/%3E%3Cpath d='M14 6h4v10h-4z' fill='%23b8bdc2'/%3E%3C/svg%3E" />
+</head>
+<body>
+  <canvas id="gl" aria-label="Jernvik shipyard, interactive 3D scene" role="img"></canvas>
+
+  <!-- ======== ARRIVAL FADE (black wipe) ======== -->
+  <div id="arrive" class="arrive" aria-hidden="true"></div>
+
+  <!-- ======== BOOT / LOADING ======== -->
+  <div id="boot" class="boot">
+    <div class="boot__inner">
+      <div class="boot__ring" aria-hidden="true"></div>
+      <h1 class="boot__title">JERNVIK</h1>
+      <p class="boot__sub">SHIPBUILDING &amp; SALVAGE CO. — EST. 1913</p>
+      <ul id="bootlist" class="boot__list" aria-live="polite">
+        <!-- checklist lines injected -->
+      </ul>
+      <button id="enter" class="enter" type="button" disabled aria-describedby="enterhint">
+        CLOCK IN
+      </button>
+      <p id="enterhint" class="boot__hint">Sound on. This yard runs entirely on this machine — nothing is sent anywhere.</p>
+    </div>
+  </div>
+
+  <!-- ======== ARRIVAL TITLE ======== -->
+  <div id="title" class="title" aria-hidden="true">
+    <h2>JERNVIK</h2>
+    <p>SHIPBUILDING &amp; SALVAGE CO. — EST. 1913</p>
+    <p class="title__motto">STEEL REMEMBERED</p>
+  </div>
+
+  <!-- ======== HUD ======== -->
+  <div id="hud" class="hud" hidden>
+    <div id="dot" class="hud__dot" aria-hidden="true"></div>
+    <div id="clockchip" class="chip chip--clock" role="status"><span id="clocktime">YARD TIME 07:42</span><span id="clockday" class="chip__dim">DAY 1</span></div>
+    <div id="locchip" class="loc" aria-hidden="true"></div>
+    <div id="prompt" class="prompt" hidden><span id="promptkey" class="prompt__key">E</span><span id="promptlabel">INSPECT</span></div>
+    <div id="captions" class="captions" role="status" aria-live="polite"></div>
+    <div id="hint" class="hint" hidden></div>
+  </div>
+
+  <!-- ======== DOCUMENT CARD (inspection) ======== -->
+  <div id="doccard" class="doccard" hidden role="dialog" aria-modal="false" aria-labelledby="doccard__title">
+    <article class="doc">
+      <header class="doc__head">
+        <h2 id="doccard__title" class="doc__title">MATERIAL RECORD</h2>
+        <span id="doccard__ref" class="doc__ref">JRN/SRV/0000</span>
+      </header>
+      <dl id="doccard__rows" class="doc__rows"></dl>
+      <p id="doccard__body" class="doc__body"></p>
+      <footer class="doc__foot">
+        <span class="doc__stampstamp" id="doccard__stamp">RECORDED</span>
+        <button id="doccard__close" class="btn" type="button">CLOSE&nbsp;&nbsp;[E]</button>
+      </footer>
+    </article>
+  </div>
+
+  <!-- ======== CLIPBOARD ======== -->
+  <div id="clipboard" class="board" hidden role="dialog" aria-modal="false" aria-labelledby="cb__title">
+    <div class="board__paper">
+      <header class="board__head">
+        <div>
+          <h2 id="cb__title" class="board__title">SURVEYOR'S CLIPBOARD</h2>
+          <p class="board__sub">JERNVIK SHIPBUILDING &amp; SALVAGE CO. — INDUCTION DAY</p>
+        </div>
+        <span class="board__roundel" aria-hidden="true">JS&amp;S<br/>1913</span>
+      </header>
+      <section>
+        <h3 class="board__h3">WORK ORDERS</h3>
+        <ol id="cb__orders" class="orders"></ol>
+      </section>
+      <section>
+        <h3 class="board__h3">MATERIAL RECORDS</h3>
+        <ul id="cb__records" class="records"><li class="records__empty">None recorded yet. Plates carry heat numbers. Rub them.</li></ul>
+        <p id="cb__note" class="board__note" hidden></p>
+      </section>
+      <footer class="board__foot">TAB or ESC to put the clipboard away.</footer>
+    </div>
+  </div>
+
+  <!-- ======== NOTICEBOARD (settings) ======== -->
+  <div id="noticeboard" class="board board--notice" hidden role="dialog" aria-modal="false" aria-labelledby="nb__title">
+    <div class="board__paper board__paper--dark">
+      <header class="board__head">
+        <div>
+          <h2 id="nb__title" class="board__title">YARD NOTICEBOARD</h2>
+          <p class="board__sub">SAFETY FIRST. THEN SETTINGS.</p>
+        </div>
+        <span class="board__roundel" aria-hidden="true">NOTICE<br/>No.1</span>
+      </header>
+      <div class="nb__grid">
+        <fieldset class="nb__card"><legend>LISTENING</legend>
+          <label class="nb__row">Ambience <input id="set-amb" type="range" min="0" max="1" step="0.05" value="0.8"></label>
+          <label class="nb__row">Events &amp; horns <input id="set-sfx" type="range" min="0" max="1" step="0.05" value="0.9"></label>
+          <label class="nb__row">All sound off <input id="set-mute" type="checkbox"></label>
+        </fieldset>
+        <fieldset class="nb__card"><legend>CAPTIONS</legend>
+          <label class="nb__row">Captions <input id="set-caps" type="checkbox" checked></label>
+          <label class="nb__row">Text size
+            <select id="set-capsize"><option value="s">S</option><option value="m" selected>M</option><option value="l">L</option></select>
+          </label>
+        </fieldset>
+        <fieldset class="nb__card"><legend>COMFORT</legend>
+          <label class="nb__row">Reduced motion <input id="set-rm" type="checkbox"></label>
+          <label class="nb__row">Look sensitivity <input id="set-sens" type="range" min="0.3" max="2" step="0.1" value="1"></label>
+        </fieldset>
+        <fieldset class="nb__card"><legend>THE YARD, DRAWN</legend>
+          <label class="nb__row">Quality
+            <select id="set-quality"><option value="auto" selected>AUTO</option><option value="ultra">ULTRA</option><option value="high">HIGH</option><option value="medium">MEDIUM</option><option value="low">LOW</option></select>
+          </label>
+          <label class="nb__row">High contrast <input id="set-hc" type="checkbox"></label>
+          <label class="nb__row">Reading copy (2D) <button id="set-twod" class="btn btn--small" type="button">OPEN</button></label>
+        </fieldset>
+        <fieldset class="nb__card nb__card--wide"><legend>CONTROLS</legend>
+          <p class="nb__controls">W A S D — walk &nbsp;·&nbsp; MOUSE — look (click the yard to take the helm) &nbsp;·&nbsp; E — inspect / engage &nbsp;·&nbsp; TAB — clipboard &nbsp;·&nbsp; N — this board &nbsp;·&nbsp; ESC — put things down</p>
+        </fieldset>
+        <fieldset class="nb__card"><legend>RECORDS</legend>
+          <button id="set-clear" class="btn btn--small" type="button">CLEAR SHIFT RECORDS</button>
+        </fieldset>
+      </div>
+      <footer class="board__foot">N or ESC to return to the yard. The yard does not pause.</footer>
+    </div>
+  </div>
+
+  <!-- ======== 2D READING COPY ======== -->
+  <div id="twod" class="twod" hidden role="article" aria-label="Jernvik — reading copy">
+    <div class="twod__sheet">
+      <header class="twod__head">
+        <h1>JERNVIK</h1>
+        <p>SHIPBUILDING &amp; SALVAGE CO. — EST. 1913 — STEEL REMEMBERED</p>
+        <button id="twod__close" class="btn" type="button">BACK TO THE YARD</button>
+      </header>
+      <div id="twod__body" class="twod__body"></div>
+      <footer class="twod__foot">This reading copy is the same yard in words. It is kept complete on purpose.</footer>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
